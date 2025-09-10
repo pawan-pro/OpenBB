@@ -55,6 +55,8 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
 
     # 1. Daily Market Snapshot
     market_snapshot = {}
+    # To add more assets, simply add new entries to the dictionaries below.
+    # Make sure the ticker is compatible with the selected provider (yfinance in this case).
     indices = {
         "S&P 500": "^GSPC",
         "NASDAQ": "^IXIC",
@@ -135,7 +137,10 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
         market_snapshot["vix"] = vix_df.iloc[-1]
 
     # 2. Upcoming Economic Events
-    economic_events = None
+    economic_events = get_data_safely(
+        obb.economy.calendar,
+        provider="fmp",
+    )
 
     # 3. Undervalued Large Caps
     undervalued_large_caps = get_data_safely(
@@ -143,33 +148,39 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
     )
 
     # 4. Top Market News
-    top_news = None
+    top_news = get_data_safely(obb.news.world, limit=10, provider="benzinga")
 
     # 5. Key Charts
-    charts = {}
-    chart_start_date = (end_date - timedelta(days=30)).strftime("%Y-%m-%d")
+    charts = {"sp500": {}, "vix": {}}
+    timeframes = {"1-Month": 30, "YTD": "YTD"}
 
-    sp500_df = get_data_safely(
-        obb.index.price.historical,
-        symbol="^GSPC",
-        start_date=chart_start_date,
-        provider="yfinance",
-    )
-    if sp500_df is not None and not sp500_df.empty:
-        charts["sp500"] = generate_chart_base64(
-            sp500_df, "S&P 500 - 30 Days", "Date", "close"
-        )
+    for tf_name, tf_days in timeframes.items():
+        if tf_days == "YTD":
+            start_date_tf = datetime(end_date.year, 1, 1).strftime("%Y-%m-%d")
+        else:
+            start_date_tf = (end_date - timedelta(days=tf_days)).strftime("%Y-%m-%d")
 
-    vix_chart_df = get_data_safely(
-        obb.index.price.historical,
-        symbol="^VIX",
-        start_date=chart_start_date,
-        provider="yfinance",
-    )
-    if vix_chart_df is not None and not vix_chart_df.empty:
-        charts["vix"] = generate_chart_base64(
-            vix_chart_df, "VIX - 30 Days", "Date", "close"
+        sp500_df = get_data_safely(
+            obb.index.price.historical,
+            symbol="^GSPC",
+            start_date=start_date_tf,
+            provider="yfinance",
         )
+        if sp500_df is not None and not sp500_df.empty:
+            charts["sp500"][tf_name] = generate_chart_base64(
+                sp500_df, f"S&P 500 - {tf_name}", "Date", "close"
+            )
+
+        vix_chart_df = get_data_safely(
+            obb.index.price.historical,
+            symbol="^VIX",
+            start_date=start_date_tf,
+            provider="yfinance",
+        )
+        if vix_chart_df is not None and not vix_chart_df.empty:
+            charts["vix"][tf_name] = generate_chart_base64(
+                vix_chart_df, f"VIX - {tf_name}", "Date", "close"
+            )
 
     data = {
         "market_snapshot": market_snapshot,
