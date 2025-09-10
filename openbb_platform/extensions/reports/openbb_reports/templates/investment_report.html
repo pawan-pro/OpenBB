@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        header {
+            background: #333;
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        nav {
+            background: #444;
+            padding: 1rem;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+        section {
+            padding: 20px;
+            margin-top: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .chart {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .news-item {
+            margin-bottom: 15px;
+        }
+        .news-item a {
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+        }
+        .news-item p {
+            margin: 5px 0 0 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ title }}</h1>
+        <p>{{ data.report_date }}</p>
+    </header>
+
+    <nav>
+        <a href="#market-snapshot">Market Snapshot</a>
+        <a href="#economic-events">Economic Events</a>
+        <a href="#equity-overview">Undervalued Large Caps</a>
+        <a href="#key-charts">Key Charts</a>
+        <a href="#top-news">Top News</a>
+    </nav>
+
+    <div class="container">
+        <section id="market-snapshot">
+            <h2>Daily Market Snapshot</h2>
+            {% if data.market_snapshot %}
+                <h3>Key Indices</h3>
+                <table>
+                    <tr>
+                        <th>Index</th>
+                        <th>Close</th>
+                        <th>Change</th>
+                        <th>% Change</th>
+                    </tr>
+                    {% for name, values in data.market_snapshot.indices.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ "%.2f"|format(values.close) }}</td>
+                        <td>{{ "%.2f"|format(values.change) }}</td>
+                        <td>{{ "%.2f"|format(values.percent_change) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                <h3>Major Currencies</h3>
+                <table>
+                    <tr>
+                        <th>Pair</th>
+                        <th>Rate</th>
+                        <th>Change</th>
+                        <th>% Change</th>
+                    </tr>
+                    {% for name, values in data.market_snapshot.currencies.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ "%.4f"|format(values.close) }}</td>
+                        <td>{{ "%.4f"|format(values.change) }}</td>
+                        <td>{{ "%.2f"|format(values.percent_change) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                <h3>Treasury Yields</h3>
+                <table>
+                    <tr>
+                        <th>Term</th>
+                        <th>Yield</th>
+                    </tr>
+                    {% for name, values in data.market_snapshot.treasury_yields.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ "%.3f"|format(values.rate) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                <h3>Commodities</h3>
+                {% if data.market_snapshot.commodities %}
+                <table>
+                    <tr>
+                        <th>Commodity</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>% Change</th>
+                    </tr>
+                    {% for name, values in data.market_snapshot.commodities.items() %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ "%.2f"|format(values.close) }}</td>
+                        <td>{{ "%.2f"|format(values.change) }}</td>
+                        <td>{{ "%.2f"|format(values.percent_change) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p>Data for commodities could not be retrieved.</p>
+                {% endif %}
+
+                <h3>Market Volatility (VIX)</h3>
+                <p>Current Value: {{ "%.2f"|format(data.market_snapshot.vix.close) }} (Change: {{ "%.2f"|format(data.market_snapshot.vix.change) }})</p>
+            {% else %}
+                <p>Data for market snapshot could not be retrieved.</p>
+            {% endif %}
+        </section>
+
+        <section id="economic-events">
+            <h2>Upcoming Economic Events</h2>
+            {% if data.economic_events is not none and not data.economic_events.empty %}
+                <table>
+                    <tr>
+                        <th>Time</th>
+                        <th>Country</th>
+                        <th>Event</th>
+                        <th>Importance</th>
+                        <th>Actual</th>
+                        <th>Previous</th>
+                        <th>Consensus</th>
+                    </tr>
+                    {% for index, row in data.economic_events.iterrows() %}
+                    <tr>
+                        <td>{{ row.date if 'date' in row else row.time }}</td>
+                        <td>{{ row.country }}</td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.importance }}</td>
+                        <td>{{ row.actual }}</td>
+                        <td>{{ row.previous }}</td>
+                        <td>{{ row.consensus }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>Data for economic events could not be retrieved.</p>
+            {% endif %}
+        </section>
+
+        <section id="equity-overview">
+            <h2>Undervalued Large Caps</h2>
+            {% if data.undervalued_large_caps is not none and not data.undervalued_large_caps.empty %}
+                <table>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>% Change</th>
+                        <th>Volume</th>
+                    </tr>
+                    {% for index, row in data.undervalued_large_caps.iterrows() %}
+                    <tr>
+                        <td>{{ row.symbol }}</td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ "%.2f"|format(row.price) }}</td>
+                        <td>{{ "%.2f"|format(row.change) }}</td>
+                        <td>{{ "%.2f"|format(row.percent_change) }}%</td>
+                        <td>{{ "{:,.0f}".format(row.volume) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>Data for undervalued large caps could not be retrieved.</p>
+            {% endif %}
+        </section>
+
+        <section id="key-charts">
+            <h2>Key Charts</h2>
+            {% if data.charts %}
+                <div class="chart">
+                    <h3>S&P 500 - 30 Days</h3>
+                    {% if data.charts.sp500 %}
+                        <img src="data:image/png;base64,{{ data.charts.sp500 }}" alt="S&P 500 Chart">
+                    {% else %}
+                        <p>Chart could not be generated.</p>
+                    {% endif %}
+                </div>
+                <div class="chart">
+                    <h3>VIX - 30 Days</h3>
+                    {% if data.charts.vix %}
+                        <img src="data:image/png;base64,{{ data.charts.vix }}" alt="VIX Chart">
+                    {% else %}
+                        <p>Chart could not be generated.</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p>Data for charts could not be retrieved.</p>
+            {% endif %}
+        </section>
+
+        <section id="top-news">
+            <h2>Top Market News</h2>
+            {% if data.top_news and not data.top_news.empty %}
+                {% for index, row in data.top_news.iterrows() %}
+                <div class="news-item">
+                    <a href="{{ row.url }}" target="_blank">{{ row.title }}</a>
+                    <p>{{ row.text }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>Data for top news could not be retrieved.</p>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>
