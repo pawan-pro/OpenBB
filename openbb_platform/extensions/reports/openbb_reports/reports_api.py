@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from jinja2 import Environment, FileSystemLoader
 
@@ -141,7 +143,7 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
     )
 
     # 4. Top Market News
-    top_news = get_data_safely(obb.news.world, limit=10, provider="yfinance")
+    top_news = None
 
     # 5. Key Charts
     charts = {}
