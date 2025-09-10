@@ -111,7 +111,7 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
     commodities_data = {}
     for name, symbol in commodities.items():
         df = get_data_safely(
-            obb.commodity.price.historical,
+            obb.derivatives.futures.historical,
             symbol=symbol,
             start_date=start_date.strftime("%Y-%m-%d"),
             provider="yfinance",
