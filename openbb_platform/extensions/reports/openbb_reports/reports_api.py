@@ -201,11 +201,13 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
     economic_events = scraper.get_events()
     if economic_events is not None and not economic_events.empty:
         economic_events_source = "Quantwater"
+        economic_events = economic_events.to_dict(orient="records")
     else:
         print("Quantwater scrape failed, falling back to FMP.")
         economic_events = get_economic_events_fmp(from_date, to_date, country="US,CA,GB,DE,FR,IT,JP,CN,IN")
         if economic_events is not None and not economic_events.empty:
             economic_events_source = "FMP"
+            economic_events = economic_events.to_dict(orient="records")
 
     # 3. Undervalued Large Caps
     undervalued_large_caps = get_data_safely(

@@ -198,15 +198,15 @@
                         <th>Forecast</th>
                         <th>Notes</th>
                     </tr>
-                    {% for index, row in data.economic_events.iterrows() %}
-                    <tr class="{{ 'high-impact' if index < 3 else '' }}">
-                        <td>{{ row.date }}</td>
-                        <td>{{ row.time_ist }}</td>
-                        <td>{{ row.event_name }}</td>
-                        <td>{{ row.currency }}</td>
-                        <td>{{ row.previous }}</td>
-                        <td>{{ row.forecast }}</td>
-                        <td>{{ row.notes }}</td>
+                    {% for row in data.economic_events %}
+                    <tr class="{{ 'high-impact' if loop.index0 < 3 else '' }}">
+                        <td>{{ row['date'] }}</td>
+                        <td>{{ row['time_ist'] }}</td>
+                        <td>{{ row['event_name'] }}</td>
+                        <td>{{ row['currency'] }}</td>
+                        <td>{{ row['previous'] }}</td>
+                        <td>{{ row['forecast'] }}</td>
+                        <td>{{ row['notes'] }}</td>
                     </tr>
                     {% endfor %}
                 </table>
@@ -223,16 +223,16 @@
                         <th>Estimate</th>
                         <th>Unit</th>
                     </tr>
-                    {% for index, row in data.economic_events.iterrows() %}
+                    {% for row in data.economic_events %}
                     <tr>
-                        <td>{{ row.date }}</td>
-                        <td>{{ row.country }}</td>
-                        <td>{{ row.event }}</td>
-                        <td>{{ row.impact }}</td>
-                        <td>{{ row.actual }}</td>
-                        <td>{{ row.previous }}</td>
-                        <td>{{ row.estimate }}</td>
-                        <td>{{ row.unit }}</td>
+                        <td>{{ row['date'] }}</td>
+                        <td>{{ row['country'] }}</td>
+                        <td>{{ row['event'] }}</td>
+                        <td>{{ row['impact'] }}</td>
+                        <td>{{ row['actual'] }}</td>
+                        <td>{{ row['previous'] }}</td>
+                        <td>{{ row['estimate'] }}</td>
+                        <td>{{ row['unit'] }}</td>
                     </tr>
                     {% endfor %}
                 </table>
