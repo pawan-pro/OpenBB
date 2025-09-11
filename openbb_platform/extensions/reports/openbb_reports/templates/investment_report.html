@@ -80,6 +80,10 @@
             color: #888;
             font-style: italic;
         }
+        .high-impact {
+            background-color: #ffdddd;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -182,7 +186,32 @@
 
         <section id="economic-events">
             <h2>Upcoming Economic Events</h2>
-            {% if data.economic_events is not none and not data.economic_events.empty %}
+            {% if data.economic_events_source == "Quantwater" %}
+                <p>These events are sourced via Quantwater Tech Investments and reflect Indian Standard Time (IST).</p>
+                <table>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time (IST)</th>
+                        <th>Event</th>
+                        <th>Currency</th>
+                        <th>Previous</th>
+                        <th>Forecast</th>
+                        <th>Notes</th>
+                    </tr>
+                    {% for index, row in data.economic_events.iterrows() %}
+                    <tr class="{{ 'high-impact' if index < 3 else '' }}">
+                        <td>{{ row.date }}</td>
+                        <td>{{ row.time_ist }}</td>
+                        <td>{{ row.event_name }}</td>
+                        <td>{{ row.currency }}</td>
+                        <td>{{ row.previous }}</td>
+                        <td>{{ row.forecast }}</td>
+                        <td>{{ row.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% elif data.economic_events_source == "FMP" %}
+                <p>Alternate Source (FMP)</p>
                 <table>
                     <tr>
                         <th>Date</th>
@@ -208,7 +237,7 @@
                     {% endfor %}
                 </table>
             {% else %}
-                <p class="no-data">Data for economic events could not be retrieved. This section requires an API key for 'fmp'.</p>
+                <p class="no-data">Data for economic events could not be retrieved.</p>
             {% endif %}
         </section>
 

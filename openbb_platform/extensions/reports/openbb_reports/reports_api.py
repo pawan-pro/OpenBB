@@ -10,6 +10,8 @@ import pandas as pd
 import requests
 from jinja2 import Environment, FileSystemLoader
 
+from .quantwater_scraper import QuantwaterScraper
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -194,7 +196,16 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
         market_snapshot["vix"] = vix_df.iloc[-1]
 
     # 2. Upcoming Economic Events
-    economic_events = get_economic_events_fmp(from_date, to_date, country="US,CA,GB,DE,FR,IT,JP,CN,IN")
+    economic_events_source = "Not available"
+    scraper = QuantwaterScraper()
+    economic_events = scraper.get_events()
+    if economic_events is not None and not economic_events.empty:
+        economic_events_source = "Quantwater"
+    else:
+        print("Quantwater scrape failed, falling back to FMP.")
+        economic_events = get_economic_events_fmp(from_date, to_date, country="US,CA,GB,DE,FR,IT,JP,CN,IN")
+        if economic_events is not None and not economic_events.empty:
+            economic_events_source = "FMP"
 
     # 3. Undervalued Large Caps
     undervalued_large_caps = get_data_safely(
@@ -239,6 +250,7 @@ def generate_daily_report(file_path: str = "daily_investment_report.html"):
     data = {
         "market_snapshot": market_snapshot,
         "economic_events": economic_events,
+        "economic_events_source": economic_events_source,
         "undervalued_large_caps": undervalued_large_caps,
         "top_news": top_news,
         "charts": charts,
