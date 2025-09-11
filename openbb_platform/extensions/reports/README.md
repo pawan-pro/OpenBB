@@ -31,13 +31,32 @@ python -m extensions.reports.openbb_reports.run_report --file-path my_reports/to
 
 The report uses the following data providers. Some of them require API keys to be set up in your OpenBB Platform environment.
 
-- **yfinance:** Used for market data (indices, currencies, commodities, VIX), undervalued large caps, and charts. (No API key required)
-- **federal_reserve:** Used for treasury yields. (No API key required)
-- **tradingeconomics:** Used for the economic calendar. Requires an API key. You can get a free key from their website.
-- **biztoc:** Used for top market news. Requires an API key from RapidAPI.
-- **marketaux:** Used as a fallback for top market news. Requires an API key.
+### yfinance
+- **Usage:** Market data (indices, currencies, commodities, VIX), undervalued large caps, and charts.
+- **API Key:** Not required.
 
-To set your API keys, you can either set them as environment variables or use the OpenBB Hub. Please refer to the main OpenBB Platform documentation for more details on setting up credentials.
+### federal_reserve
+- **Usage:** Treasury yields.
+- **API Key:** Not required.
+
+### Financial Modeling Prep (FMP)
+- **Usage:** Economic calendar.
+- **Sign-up:** Get a free API key from [https://site.financialmodelingprep.com/developer/docs/](https://site.financialmodelingprep.com/developer/docs/).
+- **Authentication:** The API key is passed as a query parameter `&apikey=YOUR_API_KEY`.
+- **Free Tier:** The free tier provides access to a wide range of data, including the economic calendar.
+
+### Benzinga
+- **Usage:** Top market news.
+- **API Key:** Required.
+
+### Setting API Keys
+To set your API keys, you can either set them as environment variables or use the OpenBB Hub.
+Example environment variables:
+```bash
+export OPENBB_FMP_API_KEY="YOUR_KEY"
+export OPENBB_BENZINGA_API_KEY="YOUR_KEY"
+```
+Please refer to the main OpenBB Platform documentation for more details on setting up credentials.
 
 ## Customization
 
