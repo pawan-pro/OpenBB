@@ -7,7 +7,7 @@ The scraper is designed to be robust to minor changes in the blog's structure an
 **Scraping Strategy:**
 
 1.  **URL Discovery:** The scraper attempts to find the current week's economic calendar
-    by checking for blog posts published on Monday, Sunday, and Tuesday of the current week.
+    by checking for blog posts published over the last 7 days.
     The URL format is assumed to be `https://quantwatertech.netlify.app/blogs/YYYY-MM-DD`.
 
 2.  **HTML Parsing:** The scraper uses BeautifulSoup to parse the HTML of the blog post.
@@ -45,7 +45,7 @@ import json
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 import pandas as pd
 import requests
@@ -113,7 +113,7 @@ class QuantwaterScraper:
             return df
 
         # If cache is not available, scrape from the web
-        blog_url = self._discover_blog_url(week_start)
+        blog_url = self._discover_blog_url()
         if not blog_url:
             print("Could not find the economic calendar blog for the current week.")
             return None
@@ -187,39 +187,35 @@ class QuantwaterScraper:
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump([asdict(e) for e in events], f, indent=4)
 
-    def _discover_blog_url(self, week_start: datetime) -> Optional[str]:
+    def _discover_blog_url(self) -> Optional[str]:
         """
         Discovers the URL for the current week's economic calendar blog post.
-        It tries Monday, Sunday, and Tuesday of the week.
-
-        Parameters
-        ----------
-        week_start : datetime
-            The start date of the week.
+        It tries Monday and Sunday of the current week.
 
         Returns
         -------
         Optional[str]
             The URL of the blog post, or None if not found.
         """
-        headers = {"User-Agent": "Lynx"}
-        # Monday is 0 and Sunday is 6. Let's find the Monday of the week.
-        monday = week_start - timedelta(days=week_start.weekday())
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
+        today = datetime.now()
 
-        # Order to check: Monday, Sunday (of the previous week), Tuesday
-        dates_to_check = [
-            monday,
-            monday - timedelta(days=1),  # Sunday
-            monday + timedelta(days=1),  # Tuesday
-        ]
+        # Check for Monday and Sunday of the current week
+        monday = today - timedelta(days=today.weekday())
+        sunday = monday - timedelta(days=1)
+
+        dates_to_check = [monday, sunday]
 
         for date in dates_to_check:
-            url = f"{self.base_url}{date.strftime('%Y-%m-%d')}"
+            url = f"{self.base_url}{date.strftime('%Y%m%d')}.html"
             try:
+                print(f"Trying URL: {url}")
                 response = requests.get(url, headers=headers, timeout=10)
+                print(f"Status code for {url}: {response.status_code}")
                 if response.status_code == 200:
                     return url
-            except requests.RequestException:
+            except requests.RequestException as e:
+                print(f"Error fetching {url}: {e}")
                 continue
         return None
 
@@ -243,10 +239,7 @@ class QuantwaterScraper:
             response.raise_for_status()
             soup = BeautifulSoup(response.content, "html.parser")
 
-            event_cards = soup.find_all("div", class_="event-card")
-            if not event_cards:
-                # Fallback: try to find cards with a similar pattern if the class name is wrong
-                event_cards = soup.select('div[class*="event-card"]')
+            event_cards = soup.find_all("article", class_="event-card")
 
             events = []
             for card in event_cards:
@@ -262,56 +255,54 @@ class QuantwaterScraper:
     def _parse_event_card(self, card) -> Optional[EconomicEvent]:
         """
         Parses a single event card element to extract event details.
-
-        This is a best-effort parser based on a presumed HTML structure.
-        It looks for specific class names within the event card.
-
-        Parameters
-        ----------
-        card : Tag
-            The BeautifulSoup tag representing the event card.
-
-        Returns
-        -------
-        Optional[EconomicEvent]
-            An EconomicEvent object, or None if parsing fails.
         """
         try:
-            date = card.find(class_="event-date").text.strip()
-            time_ist = card.find(class_="event-time").text.strip()
-            currency = card.find(class_="event-currency").text.strip()
-            event_name = card.find(class_="event-name").text.strip()
-
-            forecast_tag = card.find(class_="event-forecast")
-            forecast = forecast_tag.text.strip() if forecast_tag else "N/A"
-
-            previous_tag = card.find(class_="event-previous")
-            previous = previous_tag.text.strip() if previous_tag else "N/A"
-
-            importance_tag = card.find(class_="event-importance")
-            importance_text = importance_tag.text.strip() if importance_tag else "0"
-            importance = int(importance_text.split("/")[0])  # Assuming format "3/3"
-
-            notes_tag = card.find(class_="event-notes")
-            notes = notes_tag.text.strip() if notes_tag else None
-
-            # Data validation and cleaning
-            if not all([date, time_ist, currency, event_name]):
+            details = card.find("div", class_="event-details")
+            if not details:
                 return None
+
+            data = {}
+            labels = details.find_all("span", class_="event-label")
+            values = details.find_all("span", class_="event-value")
+
+            # The notes are in a different span class
+            notes_value = details.find("span", class_="event-notes-value")
+
+            for label, value in zip(labels, values):
+                label_text = label.text.strip().replace(":", "").lower()
+                data[label_text] = value.text.strip()
+
+            if notes_value:
+                data['notes'] = notes_value.text.strip()
+
+            date_str = data.get("date", "").split(",")[0]
+            time_ist = data.get("date", "").split(",")[2].strip() if len(data.get("date", "").split(",")) > 2 else "All Day"
+
+            # Reformat date from DD-Mon-YY to YYYY-MM-DD
+            try:
+                date_obj = datetime.strptime(date_str, "%d-%b-%y")
+                date = date_obj.strftime("%Y-%m-%d")
+            except ValueError:
+                date = date_str
+
+            importance_text = data.get("importance", "0")
+            if "/" in importance_text:
+                importance = int(importance_text.split("/")[0].split("(")[-1])
+            else:
+                importance = int(importance_text)
+
 
             return EconomicEvent(
                 date=date,
                 time_ist=time_ist,
-                currency=currency,
-                event_name=event_name,
-                forecast=forecast,
-                previous=previous,
+                currency=data.get("currency", "N/A"),
+                event_name=card.find("h3", class_="event-title").text.strip(),
+                forecast=data.get("forecast", "N/A"),
+                previous=data.get("previous", "N/A"),
                 importance=importance,
-                notes=notes,
+                notes=data.get("notes", None),
             )
-        except (AttributeError, ValueError, IndexError):
-            # This can happen if a card has a different structure or is missing data.
-            # print(f"Skipping a card due to parsing error: {e}")
+        except (AttributeError, ValueError, IndexError, KeyError):
             return None
 
 
@@ -341,7 +332,7 @@ def test_scraper():
     else:
         print("\n❌ Could not scrape events.")
         print("This could be because:")
-        print("1. No blog post was found for the current week (Monday, Sunday, or Tuesday).")
+        print("1. No blog post was found for the current week (Monday or Sunday).")
         print("2. The website structure has changed, and the scraper needs to be updated.")
         print("3. There was a network error.")
 
